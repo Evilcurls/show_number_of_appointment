@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 import requests
 import datetime
 
@@ -83,6 +83,21 @@ def index():
     
     # 渲染模板并传递数据
     return render_template('index.html', labels=labels, data=data, title=title, announcement=announcement)
+
+@app.route('/update')
+def update():
+    app_id = "14"
+    app_secret = "ftt2ggiqxcs2pxhdgfzq1msztl4cu5q4"
+    resource_id = "407"
+    
+    # 获取预约数据
+    appointments = fetch_appointment_details(app_id, app_secret, resource_id)
+    
+    # 格式化数据为 JSON 格式
+    labels = [item["time_period"] for item in appointments]
+    data = [item["remaining_slots"] for item in appointments]
+    
+    return jsonify({"labels": labels, "data": data})
 
 if __name__ == '__main__':
     app.run(debug=True)

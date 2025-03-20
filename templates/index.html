@@ -51,47 +51,78 @@
     </div>
 
     <script>
-        // 从 Flask 后端获取数据
-        const labels = {{ labels | tojson }};  // 时间段
-        const data = {{ data | tojson }};      // 剩余名额
-
-        // 初始化 Chart.js 柱状图
+        // 初始化图表
         const ctx = document.getElementById('barChart').getContext('2d');
-        const barChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,  // 横轴：时间段
-                datasets: [{
-                    label: '剩余名额',
-                    data: data,  // 纵轴：剩余名额数量
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.6)',
-                        'rgba(54, 162, 235, 0.6)',
-                        'rgba(75, 192, 192, 0.6)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(75, 192, 192, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
+        let barChart;
+
+        function initChart(labels, data) {
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '剩余名额',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(75, 192, 192, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: '{{ title }}'  <!-- 动态设置图表标题 -->
+                        },
+                        customValueDisplay: {
+                            id: 'customValueDisplay',
+                            afterDatasetsDraw(chart, args, options) {
+                                const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+
+                                ctx.save();
+                                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                                    chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
+                                        const value = dataset.data[index];
+                                        const xPosition = bar.x;
+                                        const yPosition = bar.y;
+
+                                        // 绘制数值
+                                        ctx.font = 'bold 12px Arial';
+                                        ctx.fillStyle = 'black';
+                                        ctx.textAlign = 'center';
+                                        ctx.fillText(value, xPosition, yPosition - 5); // 数值显示在柱子上方
+                                    });
+                                });
+                                ctx.restore();
+                            }
+                        }
                     },
-                    title: {
-                        display: true,
-                        text: '{{ title }}'  <!-- 动态设置图表标题 -->
-                    },
-                    // 自定义插件：在柱子上方显示数值
-                    customValueDisplay: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 50
+                            }
+                        }
+                    }
+                },
+                plugins: [ // 注册自定义插件
+                    {
                         id: 'customValueDisplay',
-                        afterDatasetsDraw(chart, args, options) {
+                        afterDatasetsDraw: (chart, args, options) => {
                             const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
 
                             ctx.save();
@@ -111,41 +142,27 @@
                             ctx.restore();
                         }
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 50
-                        }
-                    }
-                }
-            },
-            plugins: [ // 注册自定义插件
-                {
-                    id: 'customValueDisplay',
-                    afterDatasetsDraw: (chart, args, options) => {
-                        const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+                ]
+            });
+        }
 
-                        ctx.save();
-                        chart.data.datasets.forEach((dataset, datasetIndex) => {
-                            chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
-                                const value = dataset.data[index];
-                                const xPosition = bar.x;
-                                const yPosition = bar.y;
+        // 初始加载数据
+        const initialLabels = {{ labels | tojson }};
+        const initialData = {{ data | tojson }};
+        initChart(initialLabels, initialData);
 
-                                // 绘制数值
-                                ctx.font = 'bold 12px Arial';
-                                ctx.fillStyle = 'black';
-                                ctx.textAlign = 'center';
-                                ctx.fillText(value, xPosition, yPosition - 5); // 数值显示在柱子上方
-                            });
-                        });
-                        ctx.restore();
-                    }
-                }
-            ]
-        });
+        // 定时更新数据
+        setInterval(() => {
+            fetch('/update')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新图表数据
+                    barChart.data.labels = data.labels;
+                    barChart.data.datasets[0].data = data.data;
+                    barChart.update(); // 刷新图表
+                })
+                .catch(error => console.error('更新数据时出错:', error));
+        }, 10000); // 每 10 秒刷新一次
     </script>
 </body>
 </html>
