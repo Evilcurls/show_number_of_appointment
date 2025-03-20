@@ -28,12 +28,26 @@
             max-width: 100%;
             height: auto;
         }
+        .announcement {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>{{ title }}</h1> <!-- 动态显示标题 -->
         <canvas id="barChart"></canvas>
+        
+        <!-- 公告栏 -->
+        <div class="announcement">
+            {{ announcement }}
+        </div>
     </div>
 
     <script>
@@ -73,6 +87,29 @@
                     title: {
                         display: true,
                         text: '{{ title }}'  <!-- 动态设置图表标题 -->
+                    },
+                    // 自定义插件：在柱子上方显示数值
+                    customValueDisplay: {
+                        id: 'customValueDisplay',
+                        afterDatasetsDraw(chart, args, options) {
+                            const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+
+                            ctx.save();
+                            chart.data.datasets.forEach((dataset, datasetIndex) => {
+                                chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
+                                    const value = dataset.data[index];
+                                    const xPosition = bar.x;
+                                    const yPosition = bar.y;
+
+                                    // 绘制数值
+                                    ctx.font = 'bold 12px Arial';
+                                    ctx.fillStyle = 'black';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(value, xPosition, yPosition - 5); // 数值显示在柱子上方
+                                });
+                            });
+                            ctx.restore();
+                        }
                     }
                 },
                 scales: {
@@ -83,7 +120,31 @@
                         }
                     }
                 }
-            }
+            },
+            plugins: [ // 注册自定义插件
+                {
+                    id: 'customValueDisplay',
+                    afterDatasetsDraw: (chart, args, options) => {
+                        const { ctx, chartArea: { top, bottom, left, right, width, height }, scales: { x, y } } = chart;
+
+                        ctx.save();
+                        chart.data.datasets.forEach((dataset, datasetIndex) => {
+                            chart.getDatasetMeta(datasetIndex).data.forEach((bar, index) => {
+                                const value = dataset.data[index];
+                                const xPosition = bar.x;
+                                const yPosition = bar.y;
+
+                                // 绘制数值
+                                ctx.font = 'bold 12px Arial';
+                                ctx.fillStyle = 'black';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(value, xPosition, yPosition - 5); // 数值显示在柱子上方
+                            });
+                        });
+                        ctx.restore();
+                    }
+                }
+            ]
         });
     </script>
 </body>

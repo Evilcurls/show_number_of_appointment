@@ -78,8 +78,11 @@ def index():
     today_date = datetime.date.today().strftime("%Y-%m-%d")  # 格式化为 YYYY-MM-DD
     title = f"{today_date} 剩余预约情况"
     
+    # 自定义公告内容
+    announcement = "温馨提示：请合理安排时间，按时完成预约。"
+    
     # 渲染模板并传递数据
-    return render_template('index.html', labels=labels, data=data, title=title)
+    return render_template('index.html', labels=labels, data=data, title=title, announcement=announcement)
 
 if __name__ == '__main__':
     app.run(debug=True)
