@@ -47,9 +47,14 @@ def fetch_appointment_details(app_id, app_secret, resource_id):
         if data.get("e", "").upper() == "OK":
             appointments = []
             for item in data.get("d", []):
+                remaining_slots = int(item.get("remainder_num", 0))  # 强制转换为整数，默认值为 0
+                total_slots = 250  # 总预约人数固定为 250
+                booked_slots = total_slots - remaining_slots  # 已预约人数 = 总人数 - 剩余名额
+                
                 appointments.append({
                     "time_period": item.get("str_time"),
-                    "remaining_slots": item.get("remainder_num"),
+                    "remaining_slots": remaining_slots,
+                    "booked_slots": booked_slots,  # 添加已预约人数
                     "start_time": item.get("start_time"),
                     "status": "可用" if item.get("appoint_status") == 1 else "不可用"
                 })
@@ -72,17 +77,19 @@ def index():
     
     # 格式化数据为图表所需格式
     labels = [item["time_period"] for item in appointments]  # 时间段
-    data = [item["remaining_slots"] for item in appointments]  # 剩余名额
+    remaining_data = [item["remaining_slots"] for item in appointments]  # 剩余名额
+    booked_data = [item["booked_slots"] for item in appointments]  # 已预约人数
     
     # 获取今天的日期并生成标题
     today_date = datetime.date.today().strftime("%Y-%m-%d")  # 格式化为 YYYY-MM-DD
-    title = f"{today_date} 剩余预约情况"
+    title = f"{today_date} 预约情况"
     
     # 自定义公告内容
-    announcement = "温馨提示：请合理安排时间，按时完成预约。"
+    with open('公告.txt','r',encoding=('utf-8')) as txtdata:
+     announcement = txtdata.read()
     
     # 渲染模板并传递数据
-    return render_template('index.html', labels=labels, data=data, title=title, announcement=announcement)
+    return render_template('index.html', labels=labels, remaining_data=remaining_data, booked_data=booked_data, title=title, announcement=announcement)
 
 @app.route('/update')
 def update():
@@ -91,13 +98,15 @@ def update():
     resource_id = "407"
     
     # 获取预约数据
+    
     appointments = fetch_appointment_details(app_id, app_secret, resource_id)
     
     # 格式化数据为 JSON 格式
     labels = [item["time_period"] for item in appointments]
-    data = [item["remaining_slots"] for item in appointments]
+    remaining_data = [item["remaining_slots"] for item in appointments]
+    booked_data = [item["booked_slots"] for item in appointments]
     
-    return jsonify({"labels": labels, "data": data})
+    return jsonify({"labels": labels, "remaining_data": remaining_data, "booked_data": booked_data})
 
 if __name__ == '__main__':
     app.run(debug=True)

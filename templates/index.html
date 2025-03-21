@@ -55,26 +55,27 @@
         const ctx = document.getElementById('barChart').getContext('2d');
         let barChart;
 
-        function initChart(labels, data) {
+        function initChart(labels, remainingData, bookedData) {
             barChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: '剩余名额',
-                        data: data,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.6)',
-                            'rgba(54, 162, 235, 0.6)',
-                            'rgba(75, 192, 192, 0.6)'
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(75, 192, 192, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
+                    datasets: [
+                        {
+                            label: '剩余预约人数',
+                            data: remainingData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)', // 浅绿色
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '已预约人数',
+                            data: bookedData,
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)', // 浅红色
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -85,7 +86,7 @@
                         },
                         title: {
                             display: true,
-                            text: '{{ title }}'  <!-- 动态设置图表标题 -->
+                            text: '{{ title }}'  // 动态设置图表标题
                         },
                         customValueDisplay: {
                             id: 'customValueDisplay',
@@ -119,7 +120,7 @@
                         }
                     }
                 },
-                plugins: [ // 注册自定义插件
+                plugins: [
                     {
                         id: 'customValueDisplay',
                         afterDatasetsDraw: (chart, args, options) => {
@@ -148,8 +149,9 @@
 
         // 初始加载数据
         const initialLabels = {{ labels | tojson }};
-        const initialData = {{ data | tojson }};
-        initChart(initialLabels, initialData);
+        const initialRemainingData = {{ remaining_data | tojson }};
+        const initialBookedData = {{ booked_data | tojson }};
+        initChart(initialLabels, initialRemainingData, initialBookedData);
 
         // 定时更新数据
         setInterval(() => {
@@ -158,11 +160,12 @@
                 .then(data => {
                     // 更新图表数据
                     barChart.data.labels = data.labels;
-                    barChart.data.datasets[0].data = data.data;
+                    barChart.data.datasets[0].data = data.remaining_data; // 更新剩余预约人数
+                    barChart.data.datasets[1].data = data.booked_data;     // 更新已预约人数
                     barChart.update(); // 刷新图表
                 })
                 .catch(error => console.error('更新数据时出错:', error));
-        }, 10000); // 每 10 秒刷新一次
+        }, 2000); // 每 2 秒刷新一次
     </script>
 </body>
 </html>
